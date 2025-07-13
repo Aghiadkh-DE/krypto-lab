@@ -22,8 +22,11 @@ from typing import Dict, Tuple
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from additive_cipher import decipher, read_file, write_file
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import additive_cipher
+from util.file_util import read_file, write_file
 
 
 def count_letter_frequencies(text: str) -> Dict[str, int]:
@@ -107,7 +110,7 @@ def analyze_and_decrypt(ciphertext: str) -> Tuple[int, str]:
     key = calculate_key_from_frequency(most_frequent, 'E')
     
     # Decrypt the text using the calculated key
-    decrypted_text = decipher(ciphertext, key)
+    decrypted_text = additive_cipher.decipher(ciphertext, key)
     
     return key, decrypted_text
 
