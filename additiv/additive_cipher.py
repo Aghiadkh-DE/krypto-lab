@@ -86,27 +86,6 @@ def decipher(text: str, key: int) -> str:
     return ''.join(decrypted_chars)
 
 if __name__ == "__main__":
-    # Command-line interface for the additive cipher.
-    # 
-    # This script allows encryption and decryption of text files using an additive cipher.
-    # The script reads input from a file, processes it according to the specified operation
-    # (encrypt or decrypt), and writes the result to an output file.
-    # 
-    # Usage:
-    #     python additive_cipher.py -i input.txt -k 7 -o output.txt -e  # Encrypt
-    #     python additive_cipher.py -i input.txt -k 7 -o output.txt -d  # Decrypt
-    # 
-    # Arguments:
-    #     -i, --input: Path to the input text file to be processed (required)
-    #     -k, --key: Key for the cipher, must be between 0 and 25 (required)
-    #     -o, --output: Path to the output file (required)
-    #     -d, --decrypt: Decrypt the input text
-    #     -e, --encrypt: Encrypt the input text (default if neither -e nor -d specified)
-    # 
-    # Raises:
-    #     ValueError: If key is not between 0 and 25, or if both encrypt and decrypt are specified
-    #     FileNotFoundError: If the input file does not exist
-    
     parser = argparse.ArgumentParser(
         description="Additive cipher - Encrypt or decrypt text using Caesar cipher",
         epilog="Example: python additive_cipher.py -i plaintext.txt -k 7 -o ciphertext.txt -e"
