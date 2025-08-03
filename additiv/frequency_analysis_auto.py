@@ -1,20 +1,3 @@
-"""
-Frequency Analysis Module for Automatic Decryption
-
-This module implements frequency analysis to automatically decrypt German texts
-that have been encrypted using additive ciphers (Caesar cipher). The method
-is based on the fact that letters do not appear with equal frequency in natural
-languages, with 'E' being the most common letter in German.
-
-The module supports:
-- Automatic key detection through frequency analysis
-- Decryption of German texts
-- Command-line interface for file-based operations
-- Ignoring special German characters (Ä, Ö, Ü, ß)
-
-Author: Aghiad Khertabeel
-Date: July 2025
-"""
 
 import argparse
 from collections import Counter

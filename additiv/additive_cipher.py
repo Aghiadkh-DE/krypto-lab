@@ -1,19 +1,3 @@
-"""
-Additive Cipher Module
-
-This module implements an additive cipher (also known as Caesar cipher) for encrypting
-and decrypting text. The cipher shifts each letter in the alphabet by a fixed number
-of positions (the key).
-
-The module supports:
-- Encryption and decryption of uppercase letters (A-Z)
-- Non-alphabetic characters are preserved unchanged
-- Command-line interface for file-based operations
-- Key validation (0-25)
-
-Author: Aghiad Khertabeel
-Date: July 2025
-"""
 
 import argparse
 import sys
