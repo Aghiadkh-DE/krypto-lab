@@ -1,6 +1,8 @@
+import argparse
 import os
 import sys
 from collections import Counter
+
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -166,98 +168,53 @@ def determine_vigenere_key(cipher_text: str, key_length: int | None = None) -> s
 
 
 def analyze_vigenere_cipher(cipher_text: str, max_key_length: int = 20) -> tuple[str, int]:
-    # First determine the most likely key length
     key_length = find_most_likely_key_length(cipher_text, max_key_length)
-    
-    # Then determine the actual key
+
     key = determine_vigenere_key(cipher_text, key_length)
     
     return key, key_length
 
 
+def decrypt_vigenere(text: str, key: str) -> str:
+    plaintext = []
+    key_length = len(key)
 
-def main():
-    """
-    Main function to test Vigenère cipher frequency analysis.
-    """
-    print("=== Vigenère Cipher Frequency Analysis ===\n")
-    
-    try:
-        # Try to read the ciphertext file
-        print("Reading ciphertext from 'Kryptotext_TAG.txt'...")
-        ciphertext = read_file("Kryptotext_TAG.txt")
-        print(f"Loaded ciphertext ({len(ciphertext)} characters)")
-        print(f"First 100 characters: {ciphertext[:100]}...\n")
-        
-    except FileNotFoundError:
-        print("Kryptotext_TAG.txt not found. Using example text for demonstration.\n")
-        # Use a sample German text encrypted with Vigenère cipher for testing
-        ciphertext = """LXFOPVEFRNHR XHMWLXFOPVEFRNHR XHMWLXFOPVEFRNHR XHMWLXFOPVEFRNHR XHMW
-                        YZKPOVHGQNUQ VSNZMHDZOQGQNUQ VSNZMHDZOQGQNUQ VSNZMHDZOQGQNUQ VSNZ"""
-    
-    # Clean the ciphertext for analysis
-    clean_ciphertext = sanitize_text(ciphertext)
-    print(f"Cleaned ciphertext length: {len(clean_ciphertext)} characters\n")
-    
-    # Step 1: Determine possible key lengths using Index of Coincidence
-    print("Step 1: Analyzing possible key lengths...")
-    key_length_results = determine_key_length(clean_ciphertext, max_key_length=20)
-    
-    print("Top 10 most likely key lengths (based on Index of Coincidence):")
-    print("Key Length | Average IoC")
-    print("-" * 25)
-    for i, (length, ioc) in enumerate(key_length_results[:10]):
-        print(f"{length:10d} | {ioc:11.6f}")
-    print()
-    
-    # Step 2: Find the most likely key length
-    print("Step 2: Determining most likely key length...")
-    most_likely_length = find_most_likely_key_length(clean_ciphertext)
-    print(f"Most likely key length: {most_likely_length}\n")
-    
-    # Step 3: Determine the actual key
-    print("Step 3: Determining the Vigenère key...")
-    recovered_key = determine_vigenere_key(clean_ciphertext, most_likely_length)
-    print(f"Recovered key: '{recovered_key}'\n")
-    
-    # Step 4: Complete analysis using the convenience function
-    print("Step 4: Complete analysis using analyze_vigenere_cipher()...")
-    full_key, full_length = analyze_vigenere_cipher(clean_ciphertext, max_key_length=20)
-    print("Complete analysis result:")
-    print(f"  Key: '{full_key}'")
-    print(f"  Key length: {full_length}\n")
-    
-    # Step 5: Test decryption with the found key (if vigenere_cipher module exists)
-    try:
-        from vigenere_cipher import decrypt_vigenere  # type: ignore
-        print("Step 5: Testing decryption with recovered key...")
-        decrypted_text = decrypt_vigenere(clean_ciphertext, recovered_key)
-        print("Decrypted text (first 200 characters):")
-        print(f"'{decrypted_text[:200]}...'\n")
-        
-        # Save results to file
-        write_file("analysis_results.txt", 
-                  f"Recovered Key: {recovered_key}\n"
-                  f"Key Length: {most_likely_length}\n"
-                  f"Decrypted Text:\n{decrypted_text}")
-        print("Results saved to 'analysis_results.txt'")
-        
-    except ImportError:
-        print("Step 5: vigenere_cipher module not found. Skipping decryption test.")
-        print("You can manually test the key with your decryption function.\n")
-    
-    # Step 6: Show frequency analysis details for the key
-    print("Step 6: Detailed frequency analysis for each key position:")
-    subtexts = [''] * most_likely_length
-    for i, char in enumerate(clean_ciphertext):
-        subtexts[i % most_likely_length] += char
-    
-    for i, subtext in enumerate(subtexts):
-        if len(subtext) > 0:
-            shift = find_best_shift_for_subtext(subtext)
-            key_char = chr(shift + ord('A'))
-            print(f"Position {i+1}: Shift={shift:2d}, Key='{key_char}', Subtext length={len(subtext)}")
+    base, i = ord('A'), 0
+    for c in text:
+        if c.isalpha() and ord('A') <= ord(c) <= ord('Z'):
+            shift = ord(key[i % key_length].upper()) - base
+            decrypted_char = chr((ord(c.upper()) - base - shift + 26) % 26 + base)
+            plaintext.append(decrypted_char)
+            i += 1
+        else:
+            plaintext.append(c)
 
+    return ''.join(plaintext)
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Vigenère Cipher Frequency Analysis Tool",
+        epilog="Example usage: python frequency_analysis_auto.py -i input.txt -o output.txt"
+    )
+
+    parser.add_argument('-i', '--input', type=str, required=True, help='Input ciphertext file')
+    parser.add_argument('-o', '--output', type=str, required=True, help='Output results file')
+
+    args = parser.parse_args()
+
+    if not args.input or not args.output:
+        print("Error: Input and output files are required.")
+        exit(1)
+
+    try:
+        crypto_text = read_file(args.input)
+        recovered_key, recovered_key_length = analyze_vigenere_cipher(crypto_text, max_key_length=20)
+        print(f"Recovered Key: {recovered_key}")
+        print(f"Key Length: {recovered_key_length}")
+
+        write_file(args.output, decrypt_vigenere(crypto_text, recovered_key))
+
+
+    except FileNotFoundError:
+        print(f"Error: Input file '{args.input}' not found.")
+        exit(1)
