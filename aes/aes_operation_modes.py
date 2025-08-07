@@ -64,26 +64,54 @@ def mode_ofb(block_size: int, aes_operation: Callable[[bytes, bytes], bytes], pl
 
     return b''.join(encrypted_blocks)
 
+def mode_ctr(block_size: int, aes_operation: Callable[[bytes, bytes], bytes], plain_text: bytes, key: bytes, nonce: bytes) -> bytes:
+    if len(nonce) > block_size:
+        raise ValueError("Nonce cannot be longer than block size.")
+    
+    encrypted_blocks = []
+    ctr = int.from_bytes(nonce + b'\x00' * (block_size - len(nonce)), 'big')
+    
+    m_bits = block_size * 8
+    mod_value = 2 ** m_bits
+    block_count = (len(plain_text) + block_size - 1) // block_size
+    
+    for i in range(1, block_count + 1):
+        Ti = (ctr + i - 1) % mod_value
+        Ti_bytes = Ti.to_bytes(block_size, 'big')
+        encrypted_counter = aes_operation(Ti_bytes, key)
+        
+        start_idx = (i - 1) * block_size
+        end_idx = min(start_idx + block_size, len(plain_text))
+        plain_text_block = plain_text[start_idx:end_idx]
+        
+        encrypted_block = bytes([b ^ c for b, c in zip(plain_text_block, encrypted_counter)])
+        encrypted_blocks.append(encrypted_block)
+    
+    return b''.join(encrypted_blocks)
+
 def aes_encrypt(plain_text: bytes, key: bytes) -> bytes:
-    """
-    Placeholder for AES encryption function.
-    This should be replaced with an actual AES encryption implementation.
-    """
-    # Extend key to match the length of plain_text by repeating it
     extended_key = (key * ((len(plain_text) // len(key)) + 1))[:len(plain_text)]
     return bytes([b ^ k for b, k in zip(plain_text, extended_key)])
 
 def aes_decrypt(cipher_text: bytes, key: bytes) -> bytes:
-    """
-    Placeholder for AES decryption function.
-    For XOR encryption, decryption is the same as encryption.
-    """
-    # Extend key to match the length of cipher_text by repeating it
     extended_key = (key * ((len(cipher_text) // len(key)) + 1))[:len(cipher_text)]
     return bytes([b ^ k for b, k in zip(cipher_text, extended_key)])
 
 if __name__ == "__main__":
-    cipher = mode_ofb(10, aes_encrypt, b'SixteenByteKey!<KEY>>>', b'SixteenByteKey!', bytes([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]))
+    # Test CTR mode
+    nonce = bytes([1, 2, 3, 4])
+    plain_text = b'This is a test message for CTR mode!'
+    key = b'SixteenByteKey!'
+    
+    print("Testing CTR mode:")
+    print(f"Original: {plain_text.decode()}")
+    
+    # Encrypt
+    cipher = mode_ctr(16, aes_encrypt, plain_text, key, nonce)
     print(f"Cipher: {cipher}")
-    plain = mode_ofb(10, aes_decrypt, cipher, b'SixteenByteKey!', bytes([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]))
-    print(f"Plain: {plain.decode()}")
+    
+    # Decrypt (same operation in CTR mode)
+    decrypted = mode_ctr(16, aes_encrypt, cipher, key, nonce)
+    print(f"Decrypted: {decrypted.decode()}")
+    
+    print(f"Match: {plain_text == decrypted}")
