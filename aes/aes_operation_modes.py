@@ -54,9 +54,6 @@ def mode_cbc_decrypt(block_size: int, aes_operation: Callable[[bytes, bytes], by
     return b''.join(decrypted_blocks).rstrip(b'\x00')
 
 def mode_ofb(block_size: int, aes_operation: Callable[[bytes, bytes], bytes], plain_text: bytes, key: bytes, initialization_vector: bytes) -> bytes:
-    if block_size != len(initialization_vector):
-        raise ValueError("Initialization vector must match block size.")
-
     encrypted_blocks = []
     cipher_block_xi = initialization_vector
     for i in range(0, len(plain_text), block_size):
@@ -86,7 +83,7 @@ def aes_decrypt(cipher_text: bytes, key: bytes) -> bytes:
     return bytes([b ^ k for b, k in zip(cipher_text, extended_key)])
 
 if __name__ == "__main__":
-    cipher = mode_ofb(16, aes_encrypt, b'SixteenByteKey!<KEY>', b'SixteenByteKey!', bytes([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]))
+    cipher = mode_ofb(10, aes_encrypt, b'SixteenByteKey!<KEY>>>', b'SixteenByteKey!', bytes([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]))
     print(f"Cipher: {cipher}")
-    plain = mode_ofb(16, aes_decrypt, cipher, b'SixteenByteKey!', bytes([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]))
+    plain = mode_ofb(10, aes_decrypt, cipher, b'SixteenByteKey!', bytes([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]))
     print(f"Plain: {plain.decode()}")
