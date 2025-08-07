@@ -187,13 +187,11 @@ def encrypt_block(plaintext: bytes, round_keys: List[bytes]) -> bytes:
         state = shift_rows(state)
         state = mix_columns(state)
         state = add_round_key(state, round_keys[round_num])
-    
-    # Final round (no MixColumns)
+
     state = sub_bytes(state, s_box)
     state = shift_rows(state)
     state = add_round_key(state, round_keys[10])
-    
-    # Convert back to bytes
+
     return state_to_bytes(state)
 
 
@@ -212,29 +210,23 @@ def decrypt_block(ciphertext: bytes, round_keys: List[bytes]) -> bytes:
         raise ValueError("Ciphertext must be exactly 16 bytes")
     if len(round_keys) != 11:
         raise ValueError("Must provide exactly 11 round keys")
-    
-    # Get S-Boxes
+
     _, inv_s_box = get_sboxes()
-    
-    # Convert to state matrix
+
     state = bytes_to_state(ciphertext)
-    
-    # Initial round key addition (last round key)
+
     state = add_round_key(state, round_keys[10])
-    
-    # 9 main rounds (in reverse)
+
     for round_num in range(9, 0, -1):
         state = inv_shift_rows(state)
         state = inv_sub_bytes(state, inv_s_box)
         state = add_round_key(state, round_keys[round_num])
         state = inv_mix_columns(state)
-    
-    # Final round (no InvMixColumns)
+
     state = inv_shift_rows(state)
     state = inv_sub_bytes(state, inv_s_box)
     state = add_round_key(state, round_keys[0])
     
-    # Convert back to bytes
     return state_to_bytes(state)
 
 
