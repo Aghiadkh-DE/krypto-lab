@@ -89,29 +89,5 @@ def mode_ctr(block_size: int, aes_operation: Callable[[bytes, bytes], bytes], pl
     
     return b''.join(encrypted_blocks)
 
-def aes_encrypt(plain_text: bytes, key: bytes) -> bytes:
-    extended_key = (key * ((len(plain_text) // len(key)) + 1))[:len(plain_text)]
-    return bytes([b ^ k for b, k in zip(plain_text, extended_key)])
-
-def aes_decrypt(cipher_text: bytes, key: bytes) -> bytes:
-    extended_key = (key * ((len(cipher_text) // len(key)) + 1))[:len(cipher_text)]
-    return bytes([b ^ k for b, k in zip(cipher_text, extended_key)])
-
 if __name__ == "__main__":
-    # Test CTR mode
-    nonce = bytes([1, 2, 3, 4])
-    plain_text = b'This is a test message for CTR mode!'
-    key = b'SixteenByteKey!'
-    
-    print("Testing CTR mode:")
-    print(f"Original: {plain_text.decode()}")
-    
-    # Encrypt
-    cipher = mode_ctr(16, aes_encrypt, plain_text, key, nonce)
-    print(f"Cipher: {cipher}")
-    
-    # Decrypt (same operation in CTR mode)
-    decrypted = mode_ctr(16, aes_encrypt, cipher, key, nonce)
-    print(f"Decrypted: {decrypted.decode()}")
-    
-    print(f"Match: {plain_text == decrypted}")
+    ...
