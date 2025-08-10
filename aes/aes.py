@@ -110,6 +110,79 @@ def gf_multiply(a: int, b: int) -> int:
     return result & 0xFF
 
 
+def sub_word(word: bytes) -> bytes:
+    """Apply S-Box to each byte in a 4-byte word"""
+    s_box, _ = get_sboxes()
+    result = []
+    for byte in word:
+        result.append(s_box[byte >> 4][byte & 0x0F])
+    return bytes(result)
+
+
+def rot_word(word: bytes) -> bytes:
+    """Rotate a 4-byte word: (b0, b1, b2, b3) -> (b1, b2, b3, b0)"""
+    return word[1:] + word[:1]
+
+
+def rcon(i: int) -> bytes:
+    """Generate round constant for round i"""
+    # Precomputed round constants for AES-128
+    rcon_values = [
+        0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
+    ]
+    
+    if i < 1 or i > 10:
+        raise ValueError("Round constant index must be between 1 and 10")
+    
+    return bytes([rcon_values[i-1], 0x00, 0x00, 0x00])
+
+
+def key_expansion(key: bytes) -> List[bytes]:
+    """
+    AES Key Expansion Algorithm
+    
+    Input: 128-bit key (16 bytes)
+    Output: 11 round keys (44 words, each word is 4 bytes)
+    
+    Args:
+        key: 128-bit key as bytes
+        
+    Returns:
+        List of 11 round keys, each 16 bytes
+    """
+    if len(key) != 16:
+        raise ValueError("Key must be exactly 16 bytes (128 bits)")
+    
+    # Initialize word array for 44 words (11 round keys * 4 words each)
+    w = [b'\x00' * 4] * 44
+    
+    # First 4 words are the original key
+    for i in range(4):
+        w[i] = key[i*4:(i+1)*4]
+    
+    # Generate remaining 40 words
+    for i in range(4, 44):
+        temp = w[i-1]
+        
+        if i % 4 == 0:
+            # Apply RotWord, SubWord, and XOR with round constant
+            temp = rot_word(temp)
+            temp = sub_word(temp)
+            rcon_bytes = rcon(i // 4)
+            temp = bytes([a ^ b for a, b in zip(temp, rcon_bytes)])
+        
+        # XOR with word from 4 positions back
+        w[i] = bytes([a ^ b for a, b in zip(w[i-4], temp)])
+    
+    # Group words into round keys (4 words = 1 round key)
+    round_keys = []
+    for round_num in range(11):
+        round_key = b''.join(w[round_num*4:(round_num+1)*4])
+        round_keys.append(round_key)
+    
+    return round_keys
+
+
 def mix_columns(state: List[List[int]]) -> List[List[int]]:
     """Mix columns using matrix multiplication in GF(2^8)"""
     for col in range(4):
@@ -279,73 +352,141 @@ def bytes_to_hex_string(data: bytes, format_output: bool = True) -> str:
     return hex_str
 
 
-# Wrapper functions for compatibility with operation modes
 def aes_encrypt_wrapper(block: bytes, key: bytes) -> bytes:
     """
     Wrapper function for AES encryption compatible with operation modes
-    Note: This implementation uses pre-generated round keys from file
-    The 'key' parameter is ignored for this educational implementation
     
     Args:
         block: 16 bytes of plaintext
-        key: Ignored - we use round keys from file
+        key: 16 bytes encryption key
         
     Returns:
         16 bytes of ciphertext
     """
-    _ = key  # Acknowledge unused parameter
-    # Load round keys from file (this is a simplification)
-    round_keys = load_round_keys_from_file("Beispiel_key.txt")
-    if not round_keys:
-        raise ValueError("Failed to load round keys")
+    if len(key) != 16:
+        raise ValueError("Key must be exactly 16 bytes (128 bits)")
+    
+    round_keys = key_expansion(key)
     return encrypt_block(block, round_keys)
 
 
 def aes_decrypt_wrapper(block: bytes, key: bytes) -> bytes:
     """
     Wrapper function for AES decryption compatible with operation modes
-    Note: This implementation uses pre-generated round keys from file
-    The 'key' parameter is ignored for this educational implementation
     
     Args:
         block: 16 bytes of ciphertext
-        key: Ignored - we use round keys from file
+        key: 16 bytes decryption key
         
     Returns:
         16 bytes of plaintext
     """
-    _ = key  # Acknowledge unused parameter
-    # Load round keys from file (this is a simplification)
-    round_keys = load_round_keys_from_file("Beispiel_key.txt")
-    if not round_keys:
-        raise ValueError("Failed to load round keys")
+    if len(key) != 16:
+        raise ValueError("Key must be exactly 16 bytes (128 bits)")
+        
+    round_keys = key_expansion(key)
     return decrypt_block(block, round_keys)
 
 if __name__ == "__main__":
+    import sys
+    
+    # Command line argument processing
+    if len(sys.argv) < 5:
+        print("Usage: python aes.py [mode] [input_file] [key_file] [output_file] [iv_file (optional)]")
+        print("Modes: ECB, CBC, OFB, CTR")
+        print("Example: python aes.py ECB plaintext.txt key.txt ciphertext.txt")
+        sys.exit(1)
+    
+    mode = sys.argv[1].upper()
+    input_file = sys.argv[2]
+    key_file = sys.argv[3]
+    output_file = sys.argv[4]
+    iv_file = sys.argv[5] if len(sys.argv) > 5 else None
+    
     try:
-        plaintext = load_text_from_file("Beispiel_1_Klartext.txt")
-        if not plaintext:
-            raise ValueError("Failed to load plaintext")
-        print(f"Plaintext from file: \n{bytes_to_hex_string(plaintext)}")
-
-        expected_ciphertext = load_text_from_file("Beispiel_1_Kryptotext.txt")
-        if not expected_ciphertext:
-            raise ValueError("Failed to load expected ciphertext")
-
-        round_keys = load_round_keys_from_file("Beispiel_key.txt")
-        if not round_keys:
-            raise ValueError("Failed to load round keys")
-        print(f"Loaded {len(round_keys)} round keys from file")
-
-        ciphertext = encrypt_block(plaintext, round_keys)
-        print(f"\nCiphertext: \n{bytes_to_hex_string(ciphertext)}")
-        if ciphertext != expected_ciphertext:
-            print("Ciphertext does not match expected value!")
+        # Load key from file
+        key_content = read_file(key_file)
+        key = parse_hex_string(key_content)
+        if len(key) != 16:
+            raise ValueError("Key must be exactly 16 bytes (128 bits)")
+        
+        # Demonstrate key expansion
+        print(f"Original key: {key.hex()}")
+        expanded_keys = key_expansion(key)
+        print(f"Generated {len(expanded_keys)} round keys:")
+        for i, round_key in enumerate(expanded_keys):
+            print(f"Round {i}: {round_key.hex()}")
+        print()
+        
+        # Load input data
+        input_content = read_file(input_file)
+        input_data = parse_hex_string(input_content)
+        
+        # Import operation modes
+        from operation_modes import (
+            mode_ecb_encrypt, mode_ecb_decrypt,
+            mode_cbc_encrypt, mode_cbc_decrypt,
+            mode_ofb, mode_ctr
+        )
+        
+        result = None
+        
+        if mode == "ECB":
+            if "encrypt" in input_file.lower() or "klartext" in input_file.lower():
+                result = mode_ecb_encrypt(16, aes_encrypt_wrapper, input_data, key)
+                print("ECB Encryption completed")
+            else:
+                result = mode_ecb_decrypt(16, aes_decrypt_wrapper, input_data, key)
+                print("ECB Decryption completed")
+                
+        elif mode == "CBC":
+            if not iv_file:
+                raise ValueError("CBC mode requires an IV file")
+            
+            iv_content = read_file(iv_file)
+            iv = parse_hex_string(iv_content)
+            if len(iv) != 16:
+                raise ValueError("IV must be exactly 16 bytes")
+            
+            if "encrypt" in input_file.lower() or "klartext" in input_file.lower():
+                result = mode_cbc_encrypt(16, aes_encrypt_wrapper, input_data, key, iv)
+                print("CBC Encryption completed")
+            else:
+                result = mode_cbc_decrypt(16, aes_decrypt_wrapper, input_data, key, iv)
+                print("CBC Decryption completed")
+                
+        elif mode == "OFB":
+            if not iv_file:
+                raise ValueError("OFB mode requires an IV file")
+            
+            iv_content = read_file(iv_file)
+            iv = parse_hex_string(iv_content)
+            if len(iv) != 16:
+                raise ValueError("IV must be exactly 16 bytes")
+            
+            result = mode_ofb(16, aes_encrypt_wrapper, input_data, key, iv)
+            print("OFB completed")
+            
+        elif mode == "CTR":
+            if not iv_file:
+                raise ValueError("CTR mode requires a nonce file")
+            
+            nonce_content = read_file(iv_file)
+            nonce = parse_hex_string(nonce_content)
+            
+            result = mode_ctr(16, aes_encrypt_wrapper, input_data, key, nonce)
+            print("CTR completed")
+            
         else:
-            print("Ciphertext matches expected value.")
-
-        decrypted = decrypt_block(ciphertext, round_keys)
-        print(f"\nDecrypted: \n{bytes_to_hex_string(decrypted)}")
-
-    except (FileNotFoundError, IOError, ValueError) as e:
-        print(f"Error with file example: {e}")
+            raise ValueError(f"Unknown mode: {mode}")
+        
+        if result:
+            # Write result to output file
+            with open(output_file, 'w') as f:
+                f.write(result.hex())
+            print(f"Result written to {output_file}")
+            print(f"Result: {result.hex()}")
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
