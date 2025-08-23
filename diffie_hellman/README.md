@@ -316,7 +316,3 @@ Das Diffie-Hellman-Protokoll basiert auf folgenden mathematischen Konzepten:
 2. **Diskreter Logarithmus**: Die Umkehrung (Finden von a gegeben g^a mod p) ist schwierig
 3. **Sichere Primzahlen**: Primzahlen der Form p = 2q + 1 bieten zusätzliche Sicherheit
 4. **Generatoren**: Elemente, die die gesamte Gruppe Z*_p erzeugen
-
-## Lizenz
-
-Dieses Paket ist Teil des krypto-lab Projekts und steht unter der entsprechenden Lizenz.
