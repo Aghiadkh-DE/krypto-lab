@@ -1,142 +1,118 @@
-# DSA (Digital Signature Algorithm) Implementation
+# Digital Signature Algorithm (DSA) Implementation
 
-This directory contains a complete implementation of the Digital Signature Algorithm (DSA) with three command-line programs as specified.
+This directory contains a complete implementation of the Digital Signature Algorithm (DSA) according to the specified requirements.
 
-## Programs
+## Parameters
+- **L = 1024**: Bit length of prime p
+- **N = 160**: Bit length of prime q  
+- **Hash Function**: SHA-224 (using Python's hashlib library)
+- **Encryption**: ElGamal-style approach
 
-### 1. Parameter & Key Generation (`dsa_keygen.py`)
+## Public Parameters
+- **q**: Prime of length N (160 bits)
+- **p**: Prime of length L (1024 bits), where p = k·q + 1
+- **g**: Group element with order q
+- **x**: Secret key with 1 < x < q
+- **y**: Public key where y = g^x mod p
+
+## Files
+
+### 1. dsa_keygen.py
+Generates DSA parameters and key pairs.
 
 **Usage:**
 ```
-python dsa_keygen.py [public_key_output] [private_key_output]
+python dsa_keygen.py [public_key_file] [private_key_file]
 ```
 
-**Description:**
-- Generates DSA parameters (p, q, g) and a key pair (x, y)
-- Writes two files with exactly four lines each:
-  - Line 1: prime p (1024-bit)
-  - Line 2: prime q (160-bit)  
-  - Line 3: group element g
-  - Line 4: the respective key (x for private key file, y for public key file)
+**Output:** Two files with the following format:
+```
+Line 1: Prime p
+Line 2: Prime q  
+Line 3: Group element g
+Line 4: Key (x for private, y for public)
+```
 
-**Example:**
+### 2. dsa_sign.py
+Creates digital signatures for messages.
+
+**Usage:**
+```
+python dsa_sign.py [private_key_file] [message_file]
+```
+
+**Output:** Creates `[message_file].sig` containing:
+```
+Line 1: r component
+Line 2: s component
+```
+
+**Signature Algorithm:**
+1. Calculate H(m) using SHA-224
+2. Generate random k with 1 < k < q
+3. Calculate r = (g^k mod p) mod q
+4. Calculate s = k^(-1)(H(m) + r·x) mod q
+5. If r = 0 or s = 0, choose different k
+
+### 3. dsa_verify.py
+Verifies digital signatures.
+
+**Usage:**
+```
+python dsa_verify.py [public_key_file] [message_file]
+```
+
+**Input:** Reads signature from `[message_file].sig`
+
+**Verification Algorithm:**
+1. Calculate w = s^(-1) mod q
+2. Calculate u1 = H(m)·w mod q
+3. Calculate u2 = r·w mod q  
+4. Calculate v = (g^u1 · y^u2 mod p) mod q
+5. Signature is valid if v = r
+
+## Example Usage
+
+1. **Generate keys:**
 ```bash
 python dsa_keygen.py public.key private.key
 ```
 
-### 2. Signing (`dsa_sign.py`)
-
-**Usage:**
-```
-python dsa_sign.py [key_file] [message_file]
-```
-
-**Description:**
-- Signs a message using the private key from the key file
-- The message file is interpreted as a string
-- Outputs the signature values (r, s) to the console
-
-**Example:**
+2. **Sign a message:**
 ```bash
-python dsa_sign.py private.key test_message.txt
+python dsa_sign.py private.key message.txt
 ```
 
-### 3. Verification (`dsa_verify.py`)
-
-**Usage:**
-```
-python dsa_verify.py [key_file] [message_file]
-```
-
-**Description:**
-- Verifies a DSA signature for a message using the public key
-- The message file is interpreted as a string
-- Prompts for signature values (r, s) from user input
-- Outputs whether the signature is valid or invalid
-
-**Example:**
+3. **Verify signature:**
 ```bash
-python dsa_verify.py public.key test_message.txt
-```
-Then enter the r and s values when prompted.
-
-## Key File Format
-
-Both public and private key files have exactly 4 lines:
-```
-<prime p>
-<prime q>
-<group element g>
-<key value (x for private, y for public)>
+python dsa_verify.py public.key message.txt
 ```
 
 ## Implementation Details
 
-### DSA Parameters
-- **p**: 1024-bit prime
-- **q**: 160-bit prime where q divides (p-1)
-- **g**: Generator element of order q in the multiplicative group mod p
+### Prime Generation
+- Uses Miller-Rabin primality test with 20 rounds
+- Generates q first (160 bits)
+- Finds p = k·q + 1 with correct bit length (1024 bits)
+
+### Group Element Generation
+- Searches for h where g = h^k mod p ≠ 1
+- Verifies g has order q by checking g^q ≡ 1 (mod p)
 
 ### Security Features
-- Uses SHA-1 for message hashing (as per DSA standard)
-- Implements Miller-Rabin primality testing for parameter generation
-- Proper random number generation for keys and signatures
-- Validates signature parameters during verification
-
-### Core Functions
-
-The implementation includes:
-- `generate_dsa_parameters()`: Generates p, q, g parameters
-- `generate_dsa_keypair()`: Generates private/public key pair
-- `dsa_sign()`: Creates DSA signature
-- `dsa_verify()`: Verifies DSA signature
-- Miller-Rabin primality testing
-- File I/O utilities for key management
-
-## Testing
-
-Run the comprehensive test suite:
-```bash
-python test_dsa.py
-```
-
-This will test all three programs and verify the complete signing/verification process.
-
-## Files
-
-- `dsa_core.py`: Core DSA implementation
-- `dsa_keygen.py`: Key generation program
-- `dsa_sign.py`: Signing program  
-- `dsa_verify.py`: Verification program
-- `test_dsa.py`: Comprehensive test suite
-- `test_message.txt`: Sample message file for testing
-- `manual_verify_test.py`: Manual verification demonstration
-
-## Dependencies
-
-- Python 3.6+ (uses built-in libraries only)
-- No external dependencies required
+- Random k generation for each signature
+- Proper range checking for signature components
+- SHA-224 hash function as specified
+- Modular inverse calculation using extended Euclidean algorithm
 
 ## Mathematical Background
 
-The DSA signature algorithm works as follows:
+The DSA algorithm provides:
+- **Authentication**: Verifies message sender
+- **Non-repudiation**: Sender cannot deny signing
+- **Integrity**: Detects message tampering
 
-**Key Generation:**
-1. Choose primes p (1024-bit) and q (160-bit) where q divides (p-1)
-2. Find generator g of order q in Z*p
-3. Choose random private key x ∈ [1, q-1]
-4. Compute public key y = g^x mod p
-
-**Signing:**
-1. Choose random k ∈ [1, q-1]
-2. Compute r = (g^k mod p) mod q
-3. Compute s = k^(-1) * (H(m) + x*r) mod q
-4. Signature is (r, s)
-
-**Verification:**
-1. Check 0 < r < q and 0 < s < q
-2. Compute w = s^(-1) mod q
-3. Compute u1 = H(m) * w mod q
-4. Compute u2 = r * w mod q  
-5. Compute v = ((g^u1 * y^u2) mod p) mod q
-6. Signature is valid if v = r
+Security relies on:
+- Discrete logarithm problem difficulty
+- Cryptographically secure hash function (SHA-224)
+- Proper random number generation for k values
