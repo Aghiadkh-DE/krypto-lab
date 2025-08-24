@@ -1,118 +1,118 @@
-# Digital Signature Algorithm (DSA) Implementation
+# Digital Signature Algorithm (DSA) Implementierung
 
-This directory contains a complete implementation of the Digital Signature Algorithm (DSA) according to the specified requirements.
+Dieses Verzeichnis enthält eine vollständige Implementierung des Digital Signature Algorithm (DSA) gemäß den spezifizierten Anforderungen.
 
-## Parameters
-- **L = 1024**: Bit length of prime p
-- **N = 160**: Bit length of prime q  
-- **Hash Function**: SHA-224 (using Python's hashlib library)
-- **Encryption**: ElGamal-style approach
+## Parameter
+- **L = 1024**: Bitlänge der Primzahl p
+- **N = 160**: Bitlänge der Primzahl q  
+- **Hashfunktion**: SHA-224 (unter Verwendung von Pythons hashlib-Bibliothek)
+- **Verschlüsselung**: ElGamal-ähnlicher Ansatz
 
-## Public Parameters
-- **q**: Prime of length N (160 bits)
-- **p**: Prime of length L (1024 bits), where p = k·q + 1
-- **g**: Group element with order q
-- **x**: Secret key with 1 < x < q
-- **y**: Public key where y = g^x mod p
+## Öffentliche Parameter
+- **q**: Primzahl der Länge N (160 Bit)
+- **p**: Primzahl der Länge L (1024 Bit), wobei p = k·q + 1
+- **g**: Gruppenelement mit Ordnung q
+- **x**: Geheimer Schlüssel mit 1 < x < q
+- **y**: Öffentlicher Schlüssel wobei y = g^x mod p
 
-## Files
+## Dateien
 
 ### 1. dsa_keygen.py
-Generates DSA parameters and key pairs.
+Erzeugt DSA-Parameter und Schlüsselpaare.
 
-**Usage:**
+**Verwendung:**
 ```
-python dsa_keygen.py [public_key_file] [private_key_file]
+python dsa_keygen.py [öffentliche_schlüssel_datei] [private_schlüssel_datei]
 ```
 
-**Output:** Two files with the following format:
+**Ausgabe:** Zwei Dateien mit folgendem Format:
 ```
-Line 1: Prime p
-Line 2: Prime q  
-Line 3: Group element g
-Line 4: Key (x for private, y for public)
+Zeile 1: Primzahl p
+Zeile 2: Primzahl q  
+Zeile 3: Gruppenelement g
+Zeile 4: Schlüssel (x für privat, y für öffentlich)
 ```
 
 ### 2. dsa_sign.py
-Creates digital signatures for messages.
+Erstellt digitale Signaturen für Nachrichten.
 
-**Usage:**
+**Verwendung:**
 ```
-python dsa_sign.py [private_key_file] [message_file]
-```
-
-**Output:** Creates `[message_file].sig` containing:
-```
-Line 1: r component
-Line 2: s component
+python dsa_sign.py [private_schlüssel_datei] [nachrichten_datei]
 ```
 
-**Signature Algorithm:**
-1. Calculate H(m) using SHA-224
-2. Generate random k with 1 < k < q
-3. Calculate r = (g^k mod p) mod q
-4. Calculate s = k^(-1)(H(m) + r·x) mod q
-5. If r = 0 or s = 0, choose different k
+**Ausgabe:** Erstellt `[nachrichten_datei].sig` mit:
+```
+Zeile 1: r-Komponente
+Zeile 2: s-Komponente
+```
+
+**Signatur-Algorithmus:**
+1. Berechne H(m) mit SHA-224
+2. Generiere zufällige Zahl k mit 1 < k < q
+3. Berechne r = (g^k mod p) mod q
+4. Berechne s = k^(-1)(H(m) + r·x) mod q
+5. Falls r = 0 oder s = 0, wähle anderes k
 
 ### 3. dsa_verify.py
-Verifies digital signatures.
+Verifiziert digitale Signaturen.
 
-**Usage:**
+**Verwendung:**
 ```
-python dsa_verify.py [public_key_file] [message_file]
+python dsa_verify.py [öffentliche_schlüssel_datei] [nachrichten_datei]
 ```
 
-**Input:** Reads signature from `[message_file].sig`
+**Eingabe:** Liest Signatur aus `[nachrichten_datei].sig`
 
-**Verification Algorithm:**
-1. Calculate w = s^(-1) mod q
-2. Calculate u1 = H(m)·w mod q
-3. Calculate u2 = r·w mod q  
-4. Calculate v = (g^u1 · y^u2 mod p) mod q
-5. Signature is valid if v = r
+**Verifikations-Algorithmus:**
+1. Berechne w = s^(-1) mod q
+2. Berechne u1 = H(m)·w mod q
+3. Berechne u2 = r·w mod q  
+4. Berechne v = (g^u1 · y^u2 mod p) mod q
+5. Signatur ist gültig wenn v = r
 
-## Example Usage
+## Beispiel-Verwendung
 
-1. **Generate keys:**
+1. **Schlüssel generieren:**
 ```bash
 python dsa_keygen.py public.key private.key
 ```
 
-2. **Sign a message:**
+2. **Nachricht signieren:**
 ```bash
 python dsa_sign.py private.key message.txt
 ```
 
-3. **Verify signature:**
+3. **Signatur verifizieren:**
 ```bash
 python dsa_verify.py public.key message.txt
 ```
 
-## Implementation Details
+## Implementierungsdetails
 
-### Prime Generation
-- Uses Miller-Rabin primality test with 20 rounds
-- Generates q first (160 bits)
-- Finds p = k·q + 1 with correct bit length (1024 bits)
+### Primzahlerzeugung
+- Verwendet Miller-Rabin Primzahltest mit 20 Runden
+- Generiert zuerst q (160 Bit)
+- Findet p = k·q + 1 mit korrekter Bitlänge (1024 Bit)
 
-### Group Element Generation
-- Searches for h where g = h^k mod p ≠ 1
-- Verifies g has order q by checking g^q ≡ 1 (mod p)
+### Gruppenelement-Erzeugung
+- Sucht nach h wobei g = h^k mod p ≠ 1
+- Verifiziert dass g Ordnung q hat durch Prüfung von g^q ≡ 1 (mod p)
 
-### Security Features
-- Random k generation for each signature
-- Proper range checking for signature components
-- SHA-224 hash function as specified
-- Modular inverse calculation using extended Euclidean algorithm
+### Sicherheitsmerkmale
+- Zufällige k-Generierung für jede Signatur
+- Ordnungsgemäße Bereichsprüfung für Signaturkomponenten
+- SHA-224 Hashfunktion wie spezifiziert
+- Modulare Inverse Berechnung mit erweitertem Euklidischen Algorithmus
 
-## Mathematical Background
+## Mathematischer Hintergrund
 
-The DSA algorithm provides:
-- **Authentication**: Verifies message sender
-- **Non-repudiation**: Sender cannot deny signing
-- **Integrity**: Detects message tampering
+Der DSA-Algorithmus bietet:
+- **Authentifizierung**: Verifiziert Absender der Nachricht
+- **Nichtabstreitbarkeit**: Absender kann Signierung nicht leugnen
+- **Integrität**: Erkennt Nachrichtenverfälschung
 
-Security relies on:
-- Discrete logarithm problem difficulty
-- Cryptographically secure hash function (SHA-224)
-- Proper random number generation for k values
+Sicherheit beruht auf:
+- Schwierigkeit des diskreten Logarithmusproblem
+- Kryptographisch sichere Hashfunktion (SHA-224)
+- Ordnungsgemäße Zufallszahlenerzeugung für k-Werte
